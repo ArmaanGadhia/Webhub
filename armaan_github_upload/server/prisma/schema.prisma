@@ -1,0 +1,116 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         Int        @id @default(autoincrement())
+  name       String
+  email      String     @unique
+  phone      String?
+  password   String
+  role       String     @default("BUSINESS_OWNER") // VISITOR, BUSINESS_OWNER, ADMIN
+  status     String     @default("ACTIVE") // ACTIVE, INACTIVE
+  createdAt  DateTime   @default(now()) @map("created_at")
+  updatedAt  DateTime   @updatedAt @map("updated_at")
+  businesses Business[]
+
+  @@map("users")
+}
+
+model Category {
+  id          Int        @id @default(autoincrement())
+  name        String     @unique
+  slug        String     @unique
+  description String?    @db.Text
+  icon        String     @default("Briefcase")
+  status      String     @default("ACTIVE") // ACTIVE, INACTIVE
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+  businesses  Business[]
+
+  @@map("categories")
+}
+
+model Business {
+  id              Int        @id @default(autoincrement())
+  userId          Int        @map("user_id")
+  categoryId      Int        @map("category_id")
+  businessName    String     @map("business_name")
+  slug            String     @unique
+  description     String?    @db.Text
+  logo            String?    @db.Text
+  coverImage      String?    @db.Text @map("cover_image")
+  phone           String?
+  email           String?
+  website         String?
+  address         String?
+  city            String?
+  state           String?
+  pincode         String?
+  openingHours    String?    @map("opening_hours")
+  socialLinks     String?    @db.Text @map("social_links")
+  status          String     @default("PENDING") // PENDING, APPROVED, REJECTED
+  rejectionReason String?    @db.Text @map("rejection_reason")
+  approvedAt      DateTime?  @map("approved_at")
+  createdAt       DateTime   @default(now()) @map("created_at")
+  updatedAt       DateTime   @updatedAt @map("updated_at")
+
+  user            User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category        Category   @relation(fields: [categoryId], references: [id])
+  websites        Website[]
+  enquiries       Enquiry[]
+
+  @@map("businesses")
+}
+
+model Website {
+  id          Int         @id @default(autoincrement())
+  businessId  Int         @map("business_id")
+  name        String
+  slug        String      @unique
+  template    String      @default("custom")
+  contentJson String      @db.LongText @map("content_json")
+  status      String      @default("DRAFT") // DRAFT, PUBLISHED
+  publishedAt DateTime?   @map("published_at")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  business    Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  analytics   Analytics[]
+
+  @@map("websites")
+}
+
+model Enquiry {
+  id         Int      @id @default(autoincrement())
+  businessId Int      @map("business_id")
+  name       String
+  email      String
+  phone      String?
+  message    String   @db.Text
+  status     String   @default("NEW") // NEW, READ, RESPONDED
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@map("enquiries")
+}
+
+model Analytics {
+  id            Int      @id @default(autoincrement())
+  websiteId     Int      @map("website_id")
+  eventType     String   @default("VIEW") @map("event_type") // VIEW, CLICK, ENQUIRY
+  visitorIpHash String?  @map("visitor_ip_hash")
+  page          String   @default("home")
+  metadata      String?  @db.Text
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  website       Website  @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+
+  @@map("analytics")
+}
